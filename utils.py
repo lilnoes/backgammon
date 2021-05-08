@@ -3,10 +3,10 @@ import json
 
 
 def rollDice():
-    return random.randint(1, 6)
+    return random.sample([1, 2, 3, 4, 5, 6], 2)
 
 
-def init():
+def getBoard():
     data = [{"count": 0, "type": "", 'str': ""} for i in range(6+6+6+6)]
     data[0] = {"count": 5, "type": "y", 'str': "5y"}
     data[4] = {"count": 3, "type": "x", 'str': "3x"}
@@ -34,12 +34,21 @@ def init():
     return board
 
 def printTable(board):
+
+    for i in "ABCDEFGHIJKL":
+        print(f"{i:<5}", end='')
+    print()
     for i in range(12):
-        print(f"{board['data'][i]['str']:<3}", end = '')
+        cell = board['data'][i]
+        print(f"{board['data'][i]['str']:<5}", end = '')
     print()
 
     for i in range(23, 11, -1):
-        print(f"{board['data'][i]['str']:<3}", end = '')
+        print(f"{board['data'][i]['str']:<5}", end = '')
+    print()
+    # for i in "ABCDEFGHIJKL":
+        # print(f"{i:<5}", end='')
+    # print()
 
 def save(board):
     fp = open("dump.json", "w")
@@ -57,7 +66,8 @@ def toIndex(turns):
         return None
     turn1 = _toIndex(turn1)
     turn2 = _toIndex(turn2)
-    print(turn1, turn2)
+    # print(turn1, turn2)
+    return turn1, turn2
 
 def _toIndex(turn):
     if turn[1:] == '1':
@@ -67,5 +77,63 @@ def _toIndex(turn):
     index = 122 - ord(turn[0]) - 2
     return index if 23 >= index >= 12 else None
 
+def move(board, source, num, typea = "x"):
+    num = num if typea=="x" else -num
 
-toIndex("e2 b2")
+    fromCell = board["data"][source]
+    toCell = board["data"][(source + num) % 24]
+    if fromCell["count"] == 0 or fromCell["type"] != typea:
+        print(f"0 {typea} found here")
+        return False
+
+    elif toCell["type"] != typea and toCell["count"] > 1:
+        print(f"cell occupied by {toCell['str']}")
+        return False
+
+    elif toCell["type"] != typea and toCell["count"] == 1:
+        if typea == "x":
+            fromCell["count"] -= 1
+            fromCell["str"] = f"{fromCell['count']}x"
+            toCell["count"] = 1
+            toCell["type"] = "x"
+            toCell["str"] = "1x"
+            board["y_flank"] += 1
+        else:
+            fromCell["count"] -= 1
+            fromCell["str"] = f"{fromCell['count']}y"
+            toCell["count"] = 1
+            toCell["type"] = "y"
+            toCell["str"] = "1y"
+            board["x_flank"] += 1
+        board["data"][source] = fromCell
+        board["data"][(source + num) % 24] = toCell
+        print("finished moving")
+
+    elif toCell["count"] == 0 or toCell["type"] == typea:
+        if typea == "x":
+            fromCell["count"] -= 1
+            fromCell["str"] = f"{fromCell['count']}x"
+            toCell["count"] += 1
+            toCell["str"] = f"{toCell['count']}x"
+            toCell["type"] = "x"
+        else:
+            fromCell["count"] -= 1
+            fromCell["str"] = f"{fromCell['count']}y"
+            toCell["count"] += 1
+            toCell["str"] = f"{toCell['count']}y"
+            toCell["type"] = "y"
+
+
+        if fromCell["count"] == 0:
+            fromCell["str"] = ""
+        if toCell["count"] == 0:
+            toCell["str"] = ""
+        board["data"][source] = fromCell
+        board["data"][(source + num) % 24] = toCell
+        print("finished moving last")
+    else:
+        return False
+    return True
+
+
+# toIndex("e2 b2")
