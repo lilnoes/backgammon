@@ -33,8 +33,6 @@ def getBoard():
         "turn": "x",
         "x": 15,
         "y": 15,
-        "x_finished": False,
-        "y_finished": False,
     }
     return board
 
@@ -64,7 +62,21 @@ def parse(source):
     return int(source[0]), int(source[2]) - 1, parsed
 
 
-def getDest(row, col, num, typea = ""):
+def checkWin(board, typea = "x"):
+    if typea == "x":
+        count = functools.reduce(lambda x, y: x + y['count'], board["data"][0][6:], 0)
+        if count == board["x"]:
+            return True
+    else:
+        count = functools.reduce(lambda x, y: x + y['count'], board["data"][4][6:], 0)
+        if count == board["y"]:
+            return True
+    return False
+
+
+def getDest(row, col, num, typea = "", win = False):
+    if win:
+        return [row, col + num]
     dest = None
     if row == 0 and col - num < 0 and typea == "y":
         dest = [4, 11 - (col- num)%12]
@@ -75,6 +87,7 @@ def getDest(row, col, num, typea = ""):
         dest = [row, col + (num if typea=="x" else -num)]
     else:
         dest = [row, col - (num if typea=="x" else -num)]
+
     
     if dest[1]<0 or dest[1] >= 12:
         print("invalid range", dest)
@@ -87,12 +100,33 @@ def move(board, source, typea = "x"):
     row = parsed[1]
     col = parsed[2]
     num = parsed[0]
-    dest = getDest(row, col, num, typea)
+    win = checkWin(board, typea)
+    dest = getDest(row, col, num, typea, win)
 
     if dest is None:
         return False
 
     fromCell = board["data"][row][col]
+
+    if dest[1] >= 12:
+        if fromCell["type"] != typea or fromCell["count"] == 0:
+            print(f"0 {typea} found here")
+            return False
+        fromCell["count"] -= 1
+        if fromCell["count"] == 0:
+            fromCell["str"] = f""
+            fromCell["type"] = None
+        else:
+            fromCell["str"] = f"{fromCell['count']}{fromCell['type']}"
+        if typea == "x":
+            board["x"] -= 1
+        elif typea == "y":
+            board["y"] -= 1
+        board["data"][row][col] = fromCell
+        return True
+
+
+
     toCell = board["data"][dest[0]][dest[1]]
     if fromCell["count"] == 0 or fromCell["type"] != typea:
         print(f"0 {typea} found here")
@@ -215,13 +249,16 @@ def moveFlank(board, rolls, typea = "x"):
         return False
 
 def movesVar(board, rolls, typea = "x"):
+    win = checkWin(board, typea)
     for i in range(12):
         for ab in [0,4]:
             if board["data"][ab][i]["type"] == typea and board["data"][ab][i]["count"] >0:
                 for roll in rolls:
-                    dest = getDest(ab, i, roll, typea)
+                    dest = getDest(ab, i, roll, typea, win)
                     if dest is None:
                         continue
+                    if dest[1] >= 12:
+                        return True
                     toCell = board["data"][dest[0]][dest[1]]
                     if toCell["type"] == typea or toCell["count"] <= 1:
                         return True
