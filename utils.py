@@ -9,30 +9,32 @@ def rollDice():
 
 def getBoard():
     data = [[{"count": 0, "type": None, 'str': ""} for i in range(12)] for i in range(5)]
-    data[0][0] = {"count": 5, "type": "y", 'str': "5y"}
+    # data[0][0] = {"count": 5, "type": "y", 'str': "5y"}
     data[0][4] = {"count": 3, "type": "x", 'str': "3x"}
 
     data[0][6] = {"count": 5, "type": "x", 'str': "5x"}
-    # data[0][11] = {"count": 2, "type": "y", 'str': "2y"}
+    data[0][11] = {"count": 2, "type": "y", 'str': "2y"}
 
-    data[4][11] = {"count": 2, "type": "x", 'str': "2x"}
+    # data[4][11] = {"count": 2, "type": "x", 'str': "2x"}
     # data[4][6] = {"count": 5, "type": "y", 'str': "5y"}
 
     # data[4][4] = {"count": 3, "type": "y", 'str': "3y"}
-    data[4][0] = {"count": 5, "type": "x", 'str': "5x"}
+    # data[4][0] = {"count": 5, "type": "x", 'str': "5x"}
 
-    data[2][4] = {"count": 0, "type": "y", 'str': "0x"} #xflanks
-    data[2][7] = {"count": 0, "type": "y", 'str': "0y"} #yflanks
+    data[2][4] = {"count": 3, "type": "y", 'str': "3x"} #xflanks
+    data[2][7] = {"count": 3, "type": "y", 'str': "3y"} #yflanks
 
     data[2][5] = {"count": 0, "type": "y", 'str': "0"} #dice1
     data[2][6] = {"count": 0, "type": "y", 'str': "0"} #dice2
 
 
+    data[2][8] = {"count": 0, "type": "y", 'str': "x"} #whose turn
+
     board = {
         "data": data,
         "turn": "x",
-        "x": 15,
-        "y": 15,
+        "x": 11,
+        "y": 5,
     }
     return board
 
@@ -64,11 +66,11 @@ def parse(source):
 
 def checkWin(board, typea = "x"):
     if typea == "x":
-        count = functools.reduce(lambda x, y: x + y['count'], board["data"][0][6:], 0)
+        count = functools.reduce(lambda x, y: x + (y['count'] if y['type']=='x' else 0), board["data"][0][6:], 0)
         if count == board["x"]:
             return True
     else:
-        count = functools.reduce(lambda x, y: x + y['count'], board["data"][4][6:], 0)
+        count = functools.reduce(lambda x, y: x + (y['count'] if y['type']=='y' else 0), board["data"][4][6:], 0)
         if count == board["y"]:
             return True
     return False
@@ -206,7 +208,8 @@ def canFlankBeMoved(board, rolls, typea = "x"):
 
 
 def moveFlank(board, rolls, typea = "x"):
-    dest = input(f"Please choose destination for trapped {typea}")
+    player = "Player 1" if typea == "x" else "PLayer 2"
+    dest = input(f"({player}) Please choose destination for trapped {typea}")
     parsed = parse(dest)
     num = parsed[0]
     row = parsed[1]
@@ -216,7 +219,11 @@ def moveFlank(board, rolls, typea = "x"):
         print("Not in rolls")
         return False
 
-    toCell = board["data"][4][12 - num]
+    if typea == "x":
+        toCell = board["data"][4][12 - num]
+    else:
+        toCell = board["data"][0][12 - num]
+
 
     if toCell["count"] ==0 or toCell["type"] == typea:
         toCell["count"] += 1
@@ -226,8 +233,8 @@ def moveFlank(board, rolls, typea = "x"):
             board["data"][2][4]["count"] -= 1
             board["data"][2][4]["str"] = f'{board["data"][2][4]["count"]}x'
         else:
-            board["data"][2][7] -= 1
-            board["data"][2][7]["str"] = f'{board["data"][2][7]["count"]}x'
+            board["data"][2][7]["count"] -= 1
+            board["data"][2][7]["str"] = f'{board["data"][2][7]["count"]}y'
         rolls.remove(num)
         return True
     
@@ -236,11 +243,15 @@ def moveFlank(board, rolls, typea = "x"):
         toCell["type"] = typea
         toCell["str"] = f"{toCell['count']}{typea}"
         if typea == "x":
-            board["data"][2][4] -= 1
-            board["data"][2][7] += 1
+            board["data"][2][4]['count'] -= 1
+            board["data"][2][4]['str'] = f"{board['data'][2][4]['count']}"
+            board["data"][2][7]['count'] += 1
+            board["data"][2][7]['str'] = f"{board['data'][2][7]['count']}"
         else:
-            board["data"][2][7] -= 1
-            board["data"][2][4] += 1
+            board["data"][2][7]['count'] -= 1
+            board["data"][2][7]['str'] = f"{board['data'][2][7]['count']}"
+            board["data"][2][4]['count'] += 1
+            board["data"][2][4]['str'] = f"{board['data'][2][4]['count']}"
         rolls.remove(num)
         return True
 
