@@ -1,6 +1,7 @@
 import random
 import json
 import functools
+import sys
 
 
 def rollDice():
@@ -38,15 +39,25 @@ def getBoard():
     }
     return board
 
-def printTable(board):
+def updateLog(log, end = "\n"):
+    file = open("log.dat", "a")
+    print(log, end = end, file=file)
+    file.close()
+
+def updateTable(board):
+    file = open("table.dat", "w")
+    printTable(board, file)
+    file.close()
+
+def printTable(board, file=sys.stdout):
 
     for i in "ABCDEFGHIJKL":
-        print(f"{i:<5}", end='')
-    print()
+        print(f"{i:<5}", end='', file=file)
+    print(file=file)
     for row in board["data"]:
         for cell in row:
-            print(f"{cell['str']:<5}", end="")
-        print()
+            print(f"{cell['str']:<5}", end="", file=file)
+        print(file=file)
 
 def save(board):
     fp = open("dump.json", "w")
@@ -64,8 +75,8 @@ def parse(source):
     return int(source[0]), int(source[2]) - 1, parsed
 
 
-def checkWin(board, typea = "x"):
-    if typea == "x":
+def checkWin(board, player = "x"):
+    if player == "x":
         count = functools.reduce(lambda x, y: x + (y['count'] if y['type']=='x' else 0), board["data"][0][6:], 0)
         if count == board["x"]:
             return True
@@ -76,19 +87,19 @@ def checkWin(board, typea = "x"):
     return False
 
 
-def getDest(row, col, num, typea = "", win = False):
+def getDest(row, col, num, player = "", win = False):
     if win:
         return [row, col + num]
     dest = None
-    if row == 0 and col - num < 0 and typea == "y":
+    if row == 0 and col - num < 0 and player == "y":
         dest = [4, 11 - (col- num)%12]
 
-    elif row == 4 and col - num < 0 and typea == "x":
+    elif row == 4 and col - num < 0 and player == "x":
         dest = [0, 11 - (col- num)%12]
     elif row == 0:
-        dest = [row, col + (num if typea=="x" else -num)]
+        dest = [row, col + (num if player=="x" else -num)]
     else:
-        dest = [row, col - (num if typea=="x" else -num)]
+        dest = [row, col - (num if player=="x" else -num)]
 
     
     if dest[1]<0 or dest[1] >= 12:
@@ -97,13 +108,13 @@ def getDest(row, col, num, typea = "", win = False):
     return dest
 
 
-def move(board, source, typea = "x"):
+def move(board, source, player = "x"):
     parsed = parse(source)
     row = parsed[1]
     col = parsed[2]
     num = parsed[0]
-    win = checkWin(board, typea)
-    dest = getDest(row, col, num, typea, win)
+    win = checkWin(board, player)
+    dest = getDest(row, col, num, player, win)
 
     if dest is None:
         return False
@@ -111,8 +122,8 @@ def move(board, source, typea = "x"):
     fromCell = board["data"][row][col]
 
     if dest[1] >= 12:
-        if fromCell["type"] != typea or fromCell["count"] == 0:
-            print(f"0 {typea} found here")
+        if fromCell["type"] != player or fromCell["count"] == 0:
+            print(f"0 {player} found here")
             return False
         fromCell["count"] -= 1
         if fromCell["count"] == 0:
@@ -120,9 +131,9 @@ def move(board, source, typea = "x"):
             fromCell["type"] = None
         else:
             fromCell["str"] = f"{fromCell['count']}{fromCell['type']}"
-        if typea == "x":
+        if player == "x":
             board["x"] -= 1
-        elif typea == "y":
+        elif player == "y":
             board["y"] -= 1
         board["data"][row][col] = fromCell
         return True
@@ -130,16 +141,16 @@ def move(board, source, typea = "x"):
 
 
     toCell = board["data"][dest[0]][dest[1]]
-    if fromCell["count"] == 0 or fromCell["type"] != typea:
-        print(f"0 {typea} found here")
+    if fromCell["count"] == 0 or fromCell["type"] != player:
+        print(f"0 {player} found here")
         return False
 
-    elif toCell["type"] != typea and toCell["count"] > 1:
+    elif toCell["type"] != player and toCell["count"] > 1:
         print(f"cell occupied by {toCell['str']}")
         return False
 
-    elif toCell["type"] != typea and toCell["count"] == 1:
-        if typea == "x":
+    elif toCell["type"] != player and toCell["count"] == 1:
+        if player == "x":
             fromCell["count"] -= 1
             fromCell["str"] = f"{fromCell['count']}x"
             toCell["count"] = 1
@@ -162,8 +173,8 @@ def move(board, source, typea = "x"):
         board["data"][dest[0]][dest[1]] = toCell
         print("finished moving")
 
-    elif toCell["count"] == 0 or toCell["type"] == typea:
-        if typea == "x":
+    elif toCell["count"] == 0 or toCell["type"] == player:
+        if player == "x":
             fromCell["count"] -= 1
             fromCell["str"] = f"{fromCell['count']}x"
             toCell["count"] += 1
@@ -188,28 +199,28 @@ def move(board, source, typea = "x"):
     return True
 
 
-def flanksVar(board, typea):
-    if typea == "x":
+def flanksVar(board, player):
+    if player == "x":
         return board["data"][2][4]["count"] > 0
     else:
         return board["data"][2][7]["count"] > 0
 
-def canFlankBeMoved(board, rolls, typea = "x"):
+def canFlankBeMoved(board, rolls, player = "x"):
     cells = []
-    if typea == "x":
+    if player == "x":
         cells = [board["data"][4][12-i] for i in rolls]
     else:
         cells = [board["data"][0][12-i] for i in rolls]
     for cell in cells:
-        if cell["type"] == typea or cell["count"] <= 1:
+        if cell["type"] == player or cell["count"] <= 1:
             return True
     print("Cannot be moved")
     return False
 
 
-def moveFlank(board, rolls, typea = "x"):
-    player = "Player 1" if typea == "x" else "PLayer 2"
-    dest = input(f"({player}) Please choose destination for trapped {typea}")
+def moveFlank(board, rolls, player = "x"):
+    playerstr = "Player 1" if player == "x" else "PLayer 2"
+    dest = input(f"({playerstr}) Please choose destination for trapped {player}")
     parsed = parse(dest)
     num = parsed[0]
     row = parsed[1]
@@ -219,17 +230,17 @@ def moveFlank(board, rolls, typea = "x"):
         print("Not in rolls")
         return False
 
-    if typea == "x":
+    if player == "x":
         toCell = board["data"][4][12 - num]
     else:
         toCell = board["data"][0][12 - num]
 
 
-    if toCell["count"] ==0 or toCell["type"] == typea:
+    if toCell["count"] ==0 or toCell["type"] == player:
         toCell["count"] += 1
-        toCell["type"] = typea
-        toCell["str"] = f"{toCell['count']}{typea}"
-        if typea == "x":
+        toCell["type"] = player
+        toCell["str"] = f"{toCell['count']}{player}"
+        if player == "x":
             board["data"][2][4]["count"] -= 1
             board["data"][2][4]["str"] = f'{board["data"][2][4]["count"]}x'
         else:
@@ -240,9 +251,9 @@ def moveFlank(board, rolls, typea = "x"):
     
     elif toCell["count"] == 1:
         toCell["count"] = 1
-        toCell["type"] = typea
-        toCell["str"] = f"{toCell['count']}{typea}"
-        if typea == "x":
+        toCell["type"] = player
+        toCell["str"] = f"{toCell['count']}{player}"
+        if player == "x":
             board["data"][2][4]['count'] -= 1
             board["data"][2][4]['str'] = f"{board['data'][2][4]['count']}"
             board["data"][2][7]['count'] += 1
@@ -259,18 +270,18 @@ def moveFlank(board, rolls, typea = "x"):
         print("Cant move")
         return False
 
-def movesVar(board, rolls, typea = "x"):
-    win = checkWin(board, typea)
+def movesVar(board, rolls, player = "x"):
+    win = checkWin(board, player)
     for i in range(12):
         for ab in [0,4]:
-            if board["data"][ab][i]["type"] == typea and board["data"][ab][i]["count"] >0:
+            if board["data"][ab][i]["type"] == player and board["data"][ab][i]["count"] >0:
                 for roll in rolls:
-                    dest = getDest(ab, i, roll, typea, win)
+                    dest = getDest(ab, i, roll, player, win)
                     if dest is None:
                         continue
                     if dest[1] >= 12:
                         return True
                     toCell = board["data"][dest[0]][dest[1]]
-                    if toCell["type"] == typea or toCell["count"] <= 1:
+                    if toCell["type"] == player or toCell["count"] <= 1:
                         return True
     return False
