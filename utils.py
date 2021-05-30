@@ -2,6 +2,7 @@ import random
 import json
 import functools
 import sys
+import os
 
 
 def rollDice():
@@ -10,20 +11,20 @@ def rollDice():
 
 def getBoard():
     data = [[{"count": 0, "type": None, 'str': ""} for i in range(12)] for i in range(5)]
-    # data[0][0] = {"count": 5, "type": "y", 'str': "5y"}
+    data[0][0] = {"count": 5, "type": "y", 'str': "5y"}
     data[0][4] = {"count": 3, "type": "x", 'str': "3x"}
 
     data[0][6] = {"count": 5, "type": "x", 'str': "5x"}
     data[0][11] = {"count": 2, "type": "y", 'str': "2y"}
 
-    # data[4][11] = {"count": 2, "type": "x", 'str': "2x"}
-    # data[4][6] = {"count": 5, "type": "y", 'str': "5y"}
+    data[4][11] = {"count": 2, "type": "x", 'str': "2x"}
+    data[4][6] = {"count": 5, "type": "y", 'str': "5y"}
 
-    # data[4][4] = {"count": 3, "type": "y", 'str': "3y"}
-    # data[4][0] = {"count": 5, "type": "x", 'str': "5x"}
+    data[4][4] = {"count": 3, "type": "y", 'str': "3y"}
+    data[4][0] = {"count": 5, "type": "x", 'str': "5x"}
 
-    data[2][4] = {"count": 3, "type": "y", 'str': "3x"} #xflanks
-    data[2][7] = {"count": 3, "type": "y", 'str': "3y"} #yflanks
+    data[2][4] = {"count": 0, "type": "y", 'str': "0x"} #xflanks
+    data[2][7] = {"count": 0, "type": "y", 'str': "0y"} #yflanks
 
     data[2][5] = {"count": 0, "type": "y", 'str': "0"} #dice1
     data[2][6] = {"count": 0, "type": "y", 'str': "0"} #dice2
@@ -34,9 +35,12 @@ def getBoard():
     board = {
         "data": data,
         "turn": "x",
-        "x": 11,
-        "y": 5,
+        "x": 15,
+        "y": 15,
     }
+
+    file = open("log.dat", "w")
+    file.close()
     return board
 
 def updateLog(log, end = "\n"):
@@ -285,3 +289,9 @@ def movesVar(board, rolls, player = "x"):
                     if toCell["type"] == player or toCell["count"] <= 1:
                         return True
     return False
+
+def clear():
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
